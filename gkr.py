@@ -113,6 +113,20 @@ class Proof:
       self.mult : list[list[list[field.FQ]]] = mults
       self.k : list[int] = k
 
+    def to_dict(self):
+        to_serialize = dict()
+        to_serialize['sumcheckProof'] = list(map(lambda x: list(map(lambda y: list(map(lambda z: repr(z), y)), x)), self.sumcheck_proofs))
+        to_serialize['sumcheckr'] = list(map(lambda x: list(map(lambda y: repr(y), x)), self.sumcheck_r))
+        to_serialize['f'] = list(map(lambda x: repr(x), self.f))
+        to_serialize['q'] = list(map(lambda x: list(map(lambda y: repr(y), x)), self.q))
+        to_serialize['z'] = list(map(lambda x: list(map(lambda y: repr(y), x)), self.z))
+        to_serialize['D'] = list(map(lambda x: list(map(lambda y: repr(y), x)), self.D))
+        to_serialize['r'] = list(map(lambda x: repr(x), self.r))
+        to_serialize['inputFunc'] = list(map(lambda x: list(map(lambda y: repr(y), x)), self.input_func))
+        to_serialize['add'] = list(map(lambda x: list(map(lambda y: list(map(lambda z: repr(z), y)), x)), self.add))
+        to_serialize['mult'] = list(map(lambda x: list(map(lambda y: list(map(lambda z: repr(z), y)), x)), self.mult))
+        return to_serialize
+
 def prove(circuit: Circuit, D):
     start_time = time.time()
 
@@ -195,15 +209,12 @@ def verify(proof: Proof):
         if not valid:
             return False
         else:
-            b_star = proof.sumcheck_r[i][0: 2 ** (proof.k[i + 1] - 1)]
-            c_star = proof.sumcheck_r[i][2 ** (proof.k[i + 1] - 1) : 2 ** (proof.k[i + 1])]
-
             q_i = proof.q[i]
             q_zero = eval_univariate(q_i, field.FQ.zero())
             q_one = eval_univariate(q_i, field.FQ.one())
 
-            modified_f = eval_expansion(proof.add[i], proof.z[i] + b_star + c_star) * (q_zero + q_one) \
-                        + eval_expansion(proof.mult[i], proof.z[i] + b_star + c_star) * (q_zero * q_one)
+            modified_f = eval_expansion(proof.add[i], proof.z[i] + proof.sumcheck_r[i]) * (q_zero + q_one) \
+                        + eval_expansion(proof.mult[i], proof.z[i] + proof.sumcheck_r[i]) * (q_zero * q_one)
 
             sumcheck_p = proof.sumcheck_proofs[i]
             sumcheck_p_hash = field.FQ(mimc.mimc_hash(list(map(lambda x : int(x), sumcheck_p[len(sumcheck_p) - 1]))))
